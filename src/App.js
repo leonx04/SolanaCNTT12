@@ -8,7 +8,7 @@ import {
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Nav, Navbar, Container, NavDropdown, Row, Col } from 'react-bootstrap';
+import { Button, Col, Container, Nav, Navbar, NavDropdown, Row } from 'react-bootstrap';
 import { Navigate, NavLink, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import './App.css';
 import AuthForm from "./components/AuthForm";
@@ -152,7 +152,7 @@ function App() {
           </div>
         ) : (
           <div>
-            <Navbar bg="light" expand="lg">
+            <Navbar expand="lg">
               <Container fluid>
                 <Navbar.Brand>
                   <i className="bi bi-controller me-2"></i>
@@ -191,7 +191,7 @@ function App() {
             </Navbar>
 
             {/* Wallet Balance Section - Always Visible */}
-            <Container fluid className="bg-light py-2 border-bottom">
+            <Container fluid className=" py-2 border-bottom text-white">
               <Row className="align-items-center">
                 <Col>
                   {!walletAddress ? (
@@ -211,15 +211,15 @@ function App() {
                     </Button>
                   ) : (
                     <div className="d-flex align-items-center">
-                      <span className="me-3 text-muted">
+                      <span className="me-3 text-muted text-white">
                         SOL:
-                        <span className="fw-bold text-dark ms-1">
+                        <span className="fw-bold text-white ms-1">
                           {walletBalance.toFixed(2)} SOL
                         </span>
                       </span>
-                      <span className="me-3 text-muted">
+                      <span className="me-3 text-muted text-white">
                         USDC:
-                        <span className="fw-bold text-dark ms-1">
+                        <span className="fw-bold text-white ms-1">
                           {usdcBalance !== null ? usdcBalance.toFixed(2) : 'Đang tải...'} USDC
                         </span>
                       </span>

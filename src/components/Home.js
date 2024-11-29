@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
+import { Alert, Button, Form, Modal, Spinner } from 'react-bootstrap';
 import { apiKey } from '../api';
 
 const usePagination = (items, initialPerPage = 10) => {
@@ -363,31 +363,47 @@ const MarketplaceHome = ({ referenceId }) => {
   }
 
   return (
-    <div className="container-fluid py-5">
-      <div className="container">
-        <h1 className="text-center mb-5 display-4 fw-bold text-primary">
-          Trang chủ
-        </h1>
+    <div className="marketplace-container position-relative" style={{
+      minHeight: '100vh',
+      color: '#ffffff'
+    }}>
+      <div className="container py-5">
+        <div className="text-center mb-5">
+          <h1 className="display-4 fw-bold text-white mb-3" style={{
+            background: 'linear-gradient(90deg, #00d2ff 0%, #7e51ff 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Marketplace
+          </h1>
+          <p className="lead text-white-50">Khám phá và sở hữu những tài sản độc đáo</p>
+        </div>
 
-        {/* Pagination and display controls */}
-        <div className="row g-3 align-items-center">
-          <div className="col-12 col-md-4 d-flex align-items-center justify-content-between justify-content-md-start">
-            <span className="me-3 text-nowrap">
-              Hiển thị: {currentItems.length} / {totalResults} sản phẩm
-            </span>
-            <Form.Select
-              size="sm"
-              style={{ width: 'auto' }}
-              value={perPage}
-              onChange={(e) => changePerPage(Number(e.target.value))}
-              className="d-md-none d-block"
-            >
-              {[5, 10, 20, 50].map((num) => (
-                <option key={num} value={num}>
-                  {num} sản phẩm/trang
-                </option>
-              ))}
-            </Form.Select>
+        {/* Pagination and Controls */}
+        <div className="row mb-4 g-3 align-items-center">
+          <div className="col-12 col-md-4">
+            <div className="d-flex align-items-center text-white">
+              <span className="me-3">Hiển thị: {currentItems.length} / {totalResults} sản phẩm</span>
+              <Form.Select
+                size="sm"
+                className="text-white"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(15px)',
+                  borderRadius: '15px',
+                  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                  border: '1px solid rgba(255, 255, 255, 0.18)'
+                }}
+                value={perPage}
+                onChange={(e) => changePerPage(Number(e.target.value))}
+              >
+                {[5, 10, 20, 50].map((num) => (
+                  <option key={num} value={num} className="text-dark"  >
+                    {num} sản phẩm/trang
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
           </div>
 
           <div className="col-12 col-md-4 d-flex justify-content-center">
@@ -397,177 +413,205 @@ const MarketplaceHome = ({ referenceId }) => {
               onPageChange={changePage}
             />
           </div>
-
-          <div className="col-12 col-md-4 d-none d-md-block text-end">
-            <Form.Select
-              size="sm"
-              style={{ width: 'auto', float: 'right' }}
-              value={perPage}
-              onChange={(e) => changePerPage(Number(e.target.value))}
-            >
-              {[5, 10, 20, 50].map((num) => (
-                <option key={num} value={num}>
-                  {num} sản phẩm/trang
-                </option>
-              ))}
-            </Form.Select>
-          </div>
         </div>
 
-
-        {/* Product grid */}
-        <div className="row row-cols-1 row-cols-md-3 g-4 mt-2">
+        {/* Product Grid */}
+        <div className="row row-cols-1 row-cols-md-3 g-4">
           {currentItems.map((itemData) => {
             const item = itemData.item;
             return (
               <div key={item.id} className="col">
-                <Card className="h-100 d-flex flex-column shadow-sm hover-lift">
-                  <Card.Img
-                    variant="top"
-                    src={item.imageUrl || '/default-image.jpg'}
-                    alt={item.name || 'Hình ảnh sản phẩm'}
-                    className="card-img-top"
+                <div
+                  className="card h-100 bg-transparent border-0 card-hover-effect"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    backdropFilter: 'blur(20px)',
+                    borderRadius: '15px',
+                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)'
+                  }}
+                >
+                  <div
+                    className="card-img-top position-relative overflow-hidden"
                     style={{
-                      width: '100%',
-                      height: 'auto',
-                      aspectRatio: '16/9',
-                      objectFit: 'cover',
+                      height: '250px',
+                      borderTopLeftRadius: '15px',
+                      borderTopRightRadius: '15px',
+                      background: `url(${item.imageUrl || '/default-image.jpg'}) center/cover no-repeat`
                     }}
-                  />
-                  <Card.Body style={{ flex: 1 }}>
-                    <Card.Title className="fw-bold">{item.name}</Card.Title>
-                    <Card.Text className="text-muted">
-                      Tác giả: {item.owner.referenceId}
-                    </Card.Text>
-
-                    <div className="d-flex justify-content-between align-items-center mt-auto">
-                      <div>
-                        <span className="badge bg-primary">
-                          {`$${(item.priceCents / 100).toFixed(2)} USDC`}
-                        </span>
-                      </div>
-                      <Button
-                        variant="btn btn-primary"
-                        onClick={() => handleBuyItem(itemData)}
-                      >
-                        Mua ngay
-                      </Button>
+                  >
+                    <div
+                      className="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-50"
+                      style={{ backdropFilter: 'blur(5px)' }}
+                    >
+                      {`$${(item.priceCents / 100).toFixed(2)} USDC`}
                     </div>
-                  </Card.Body>
-                </Card>
+                  </div>
+
+                  <div className="card-body text-white">
+                    <h5 className="card-title fw-bold mb-2">{item.name}</h5>
+                    <p className="card-text text-white-50 mb-3">
+                      Tác giả: {item.owner.referenceId}
+                    </p>
+
+                    <Button
+                      variant="outline-light"
+                      className="w-100 mt-auto"
+                      onClick={() => handleBuyItem(itemData)}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        border: 'none'
+                      }}
+                    >
+                      Mua ngay
+                    </Button>
+                  </div>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
-      {/* Thêm thông báo thời gian cập nhật cuối cùng */}
-      {/* Positioning the update notification in the bottom right corner */}
+
+      {/* Update Time & Manual Refresh */}
       <div
-        className="text-center mb-3"
+        className="position-fixed bottom-0 end-0 m-4 text-white"
         style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          backgroundColor: '#4F46E5',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '5px',
-          display: 'flex',
-          alignItems: 'center',
+          backdropFilter: 'blur(5px)',
+          borderRadius: '10px',
+          padding: '10px 20px'
         }}
       >
-        <small className="text-light d-flex align-items-center justify-content-center">
-          Cập nhật lần cuối: {new Date(lastFetchTime).toLocaleString()}
+        <small>
+          Cập nhật: {new Date(lastFetchTime).toLocaleString()}
           <Button
             variant="outline-light"
             size="sm"
-            onClick={handleManualRefresh}
             className="ms-2"
+            onClick={handleManualRefresh}
           >
-            <i className="bi bi-arrow-clockwise me-2" style={{ fontSize: '0.875rem' }}></i>
             Làm mới
           </Button>
         </small>
       </div>
-      {/* Purchase Confirmation Modal */}
+
+      {/* Giữ nguyên Modal mua hàng như ban đầu */}
       {selectedItem && (
-        <Modal show={!!selectedItem} onHide={() => setSelectedItem(null)} size="lg">
-          <Modal.Header closeButton>
-            <Modal.Title>Xác nhận mua {selectedItem.name}</Modal.Title>
+        <Modal
+          show={!!selectedItem}
+          onHide={() => setSelectedItem(null)}
+          size="lg"
+          centered
+          className="product-purchase-modal"
+        >
+          <Modal.Header closeButton className="border-bottom-0 pb-0">
+            <Modal.Title className="w-100 text-center fs-4 fw-bold">
+              Xác nhận mua {selectedItem.name}
+            </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div className="row">
-              <div className="col-md-6">
-                <img
-                  src={selectedItem.imageUrl}
-                  alt={selectedItem.name}
-                  className="img-fluid mb-3 rounded"
-                  style={{ maxHeight: '300px', width: '100%', objectFit: 'cover' }}
-                />
-              </div>
-              <div className="col-md-6">
-                <h5 className="mb-3">Chi tiết sản phẩm</h5>
-                <div className="card mb-3">
-                  <div className="card-body">
-                    <p className="card-text">
-                      <strong>Tên:</strong> {selectedItem.name}
-                    </p>
-                    <p className="card-text">
-                      <strong>Mô tả:</strong> {selectedItem.description || 'Không có mô tả'}
-                    </p>
-                    <p className="card-text">
-                      <strong>Giá:</strong> ${(selectedItem.priceCents / 100).toFixed(2)} USDC
-                    </p>
+            <div className="container-fluid">
+              <div className="row g-4">
+                <div className="col-md-5">
+                  <div className="position-relative">
+                    <img
+                      src={selectedItem.imageUrl}
+                      alt={selectedItem.name}
+                      className="img-fluid rounded-3 shadow-sm"
+                      style={{
+                        height: '320px',
+                        width: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center'
+                      }}
+                    />
                   </div>
                 </div>
+                <div className="col-md-7">
+                  <div className="d-flex flex-column h-100">
+                    <div className="product-details mb-4">
+                      <h5 className="mb-3 text-muted">Chi tiết sản phẩm</h5>
+                      <div className="bg-light p-3 rounded-3">
+                        <div className="mb-2">
+                          <span className="fw-bold me-2">Tên:</span>
+                          <span>{selectedItem.name}</span>
+                        </div>
+                        <div className="mb-2">
+                          <span className="fw-bold me-2">Mô tả:</span>
+                          <span>{selectedItem.description || 'Không có mô tả'}</span>
+                        </div>
+                        <div>
+                          <span className="fw-bold me-2">Giá:</span>
+                          <span className="text-primary fw-bold">
+                            ${(selectedItem.priceCents / 100).toFixed(2)} USDC
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                {selectedItem.attributes && selectedItem.attributes.length > 0 && (
-                  <div className="card">
-                    <div className="card-header">Thuộc tính</div>
-                    <ul className="list-group list-group-flush">
-                      {selectedItem.attributes.map((attr, index) => (
-                        <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                          <span className="text-muted">********</span>
-                          <span className="badge bg-primary rounded-pill">{attr.value}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {selectedItem.attributes && selectedItem.attributes.length > 0 && (
+                      <div className="attributes-section mb-4">
+                        <h5 className="mb-3 text-muted">Thuộc tính</h5>
+                        <div className="bg-light rounded-3 overflow-hidden">
+                          {selectedItem.attributes.map((attr, index) => (
+                            <div
+                              key={index}
+                              className={`d-flex justify-content-between align-items-center p-2 ${index < selectedItem.attributes.length - 1 ? 'border-bottom' : ''
+                                }`}
+                            >
+                              <span className="text-muted">********</span>
+                              <span className="badge bg-primary rounded-pill">
+                                {attr.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {buyError && (
+                      <Alert variant="danger" className="mt-auto">
+                        {buyError}
+                      </Alert>
+                    )}
                   </div>
-                )}
-
-                {buyError && (
-                  <Alert variant="danger" className="mt-3">
-                    {buyError}
-                  </Alert>
-                )}
+                </div>
               </div>
             </div>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setSelectedItem(null)} disabled={buyLoading}>
-              Hủy
-            </Button>
-            <Button
-              variant="primary"
-              onClick={buyItemWithPhantomWallet}
-              disabled={buyLoading}
-            >
-              {buyLoading ? (
-                <>
-                  <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                    className="me-2"
-                  />
-                  Đang xử lý...
-                </>
-              ) : (
-                'Xác nhận mua'
-              )}
-            </Button>
+          <Modal.Footer className="border-top-0 pt-0">
+            <div className="w-100 d-flex justify-content-between">
+              <Button
+                variant="outline-secondary"
+                onClick={() => setSelectedItem(null)}
+                disabled={buyLoading}
+                className="px-4"
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                onClick={buyItemWithPhantomWallet}
+                disabled={buyLoading}
+                className="px-4"
+              >
+                {buyLoading ? (
+                  <>
+                    <Spinner
+                      as="span"
+                      animation="border"
+                      size="sm"
+                      role="status"
+                      aria-hidden="true"
+                      className="me-2"
+                    />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  'Xác nhận mua'
+                )}
+              </Button>
+            </div>
           </Modal.Footer>
         </Modal>
       )}

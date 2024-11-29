@@ -409,10 +409,14 @@ const ItemsTable = ({ ownerReferenceId }) => {
                         <div className="table-responsive">
                             <style>{`
                                 body {
-                                    background-color: #f4f6f9;
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    backdropFilter: 'blur(20px)',
+                                    borderRadius: '15px',
+                                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                                    border: '1px solid rgba(255, 255, 255, 0.18)'
                                 }
                                 .bg-soft-background {
-                                    background-color: #f4f6f9;
+                                    background: 'rgba(255, 255, 255, 0.1)';
                                 }
                                 .table-hover tbody tr:hover {
                                     background-color: rgba(0, 123, 255, 0.05);
@@ -432,7 +436,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                                 }
                             `}</style>
                             <table className="table table-hover mb-0">
-                                <thead className="bg-light">
+                                <thead>
                                     <tr>
                                         <th className="text-muted fw-normal">Ảnh</th>
                                         <th className="text-muted fw-normal">Tên</th>
@@ -542,7 +546,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                         </div>
 
                         {/* Phân trang */}
-                        <div className="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center px-3 py-2">
+                        <div className="card-footer  border-top-0 d-flex justify-content-between align-items-center px-3 py-2">
                             <div className="d-flex align-items-center">
                                 <span className="text-muted me-2">Hiển thị:</span>
                                 <select
