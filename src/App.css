@@ -57,7 +57,7 @@ body {
 }
 
 .app-container {
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   background-color: white;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -254,4 +254,22 @@ body {
     width: 90%;
     padding: 20px;
   }
+}
+.text-gradient {
+  background: linear-gradient(45deg, #00b4db, #6a11cb);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.transform-on-hover:hover .card-img-top {
+  transform: scale(1.1) !important;
+}
+
+.transform-on-hover:hover .card-overlay {
+  opacity: 1 !important;
+}
+
+.transition-transform {
+  transition: transform 0.3s ease;
 }
