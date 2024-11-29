@@ -250,12 +250,12 @@ const AuthForm = ({ setIsLoggedIn, setUserData }) => {
   }
 
   return (
-    <div className="vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div className="auth-form-container">
       <div className="container">
         <div className="row justify-content-center">
-          <div className="col-md-5 col-lg-4">
+          <div className="auth-form-wrapper">
             <div className="bg-white rounded-4 p-4 shadow-sm">
-              <div className="text-center mb-4">
+              <div className="auth-form-title">
                 <h4 className="fw-bold mb-1 text-dark">
                   {isRegistering ? 'Tạo tài khoản' : 'Đăng nhập'}
                 </h4>
@@ -271,7 +271,7 @@ const AuthForm = ({ setIsLoggedIn, setUserData }) => {
                   <input
                     id="referenceId-input"
                     type="text"
-                    className="form-control form-control-lg bg-light border-0 rounded-3"
+                    className="form-control auth-form-input"
                     placeholder="Tên tài khoản"
                     name="referenceId"
                     value={formData.referenceId}
@@ -284,7 +284,7 @@ const AuthForm = ({ setIsLoggedIn, setUserData }) => {
                   <input
                     id="email-input"
                     type="email"
-                    className="form-control form-control-lg bg-light border-0 rounded-3"
+                    className="form-control auth-form-input"
                     placeholder="Email"
                     name="email"
                     value={formData.email}
@@ -310,7 +310,7 @@ const AuthForm = ({ setIsLoggedIn, setUserData }) => {
                 <button
                   id="auth-button"
                   type="button"
-                  className={`btn ${isRegistering ? 'btn-dark' : 'btn-primary'} w-100 py-3 rounded-3 position-relative overflow-hidden`}
+                  className={`btn auth-form-button ${isRegistering ? 'btn-dark' : 'btn-primary'}`}
                   onClick={() => handleAction(isRegistering)}
                   disabled={isLoading || (isRegistering && !isPhantomInstalled)}
                 >
@@ -338,7 +338,7 @@ const AuthForm = ({ setIsLoggedIn, setUserData }) => {
                 </div>
               )}
 
-              <div className="text-center mt-4">
+              <div className="auth-form-toggle">
                 <button
                   type="button"
                   className="btn btn-link text-decoration-none p-0 text-secondary"

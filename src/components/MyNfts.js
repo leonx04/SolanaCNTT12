@@ -16,8 +16,8 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
     name: '',
     description: '',
     image: null,
-    attributeName: '',
-    attributeValue: ''
+    traitType: '',
+    rarity: ''
   });
 
   const [preview, setPreview] = useState(null);
@@ -26,13 +26,21 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
   const CLOUDINARY_UPLOAD_PRESET = 'GameNFT';
   const CLOUDINARY_CLOUD_NAME = 'dg8b8iuzs';
 
+  const RARITY_OPTIONS = [
+    'Common', 
+    'Rare', 
+    'Epic', 
+    'Legendary', 
+    'Mythic'
+  ];
+
   const resetForm = () => {
     setFormData({
       name: '',
       description: '',
       image: null,
-      attributeName: '',
-      attributeValue: ''
+      traitType: '',
+      rarity: ''
     });
     setPreview(null);
     setFormErrors({});
@@ -43,7 +51,7 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
   const validateForm = () => {
     const errors = {};
     if (!formData.name.trim()) {
-      errors.name = "Tên sản phẩm là bắt buộc";
+      errors.name = "Tên vật phẩm là bắt buộc";
     } else if (formData.name.length > 32) {
       errors.name = "Tên không được vượt quá 32 ký tự";
     }
@@ -56,6 +64,16 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
 
     if (!formData.image) {
       errors.image = "Hình ảnh là bắt buộc";
+    }
+
+    if (!formData.traitType.trim()) {
+      errors.traitType = "Giftcode là bắt buộc";
+    } else if (!/^[a-zA-Z0-9]{1,8}$/.test(formData.traitType)) {
+      errors.traitType = "Giftcode phải có 1-8 ký tự chữ và số";
+    }
+
+    if (!formData.rarity) {
+      errors.rarity = "Độ hiếm là bắt buộc";
     }
 
     return errors;
@@ -169,17 +187,15 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
           name: formData.name,
           description: formData.description,
           imageUrl: imageUrl,
-          attributes: []
+          attributes: [
+            {
+              traitType: formData.traitType,
+              value: formData.rarity
+            }
+          ]
         },
         destinationUserReferenceId: referenceId
       };
-
-      if (formData.attributeName && formData.attributeValue) {
-        payload.details.attributes.push({
-          traitType: formData.attributeName,
-          value: formData.attributeValue
-        });
-      }
 
       setUploadProgress(75);
       
@@ -202,7 +218,7 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
       const data = await response.json();
       
       setIsSuccess(true);
-      setResultMessage("Tạo sản phẩm thành công!");
+      setResultMessage("Tạo vật phẩm thành công!");
       resetForm();
       setShowModal(false);
 
@@ -213,7 +229,7 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
     } catch (err) {
       console.error('Error creating product:', err);
       setIsSuccess(false);
-      setResultMessage(err.message || "Không thể tạo sản phẩm. Vui lòng thử lại sau");
+      setResultMessage(err.message || "Không thể tạo vật phẩm. Vui lòng thử lại sau");
     } finally {
       setIsSubmitting(false);
       setShowResultModal(true);
@@ -228,22 +244,19 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
 
   return (
     <div>
-      {/* Phần tạo sản phẩm */}
       <div className="mb-4">
-        <Button variant="primary" onClick={() => setShowModal(true)}>
-          Tạo Sản Phẩm Mới
+        <Button variant="success" onClick={() => setShowModal(true)}>
+          Tạo vật phẩm mới
         </Button>
       </div>
 
-      {/* Phần bảng hiển thị sản phẩm */}
       <div className="mt-4">
         <ItemsTable ownerReferenceId={referenceId} />
       </div>
 
-      {/* Create Product Modal */}
       <Modal show={showModal} onHide={handleClose} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title className="theme-text">Tạo Sản Phẩm Mới</Modal.Title>
+          <Modal.Title className="theme-text">Tạo vật phẩm mới</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && (
@@ -253,44 +266,82 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
           )}
           
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label">Tên sản phẩm</label>
-              <input 
-                type="text" 
-                className={`form-control ${formErrors.name ? 'is-invalid' : ''}`}
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Nhập tên sản phẩm"
-                disabled={isSubmitting}
-                maxLength={32}
-              />
-              {formErrors.name && (
-                <div className="invalid-feedback">{formErrors.name}</div>
-              )}
-            </div>
+            <div className="row">
+              <div className="col-md-6">
+                <div className="mb-3">
+                  <label className="form-label">Tên vật phẩm</label>
+                  <input 
+                    type="text" 
+                    className={`form-control ${formErrors.name ? 'is-invalid' : ''}`}
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Nhập tên vật phẩm"
+                    disabled={isSubmitting}
+                    maxLength={32}
+                  />
+                  {formErrors.name && (
+                    <div className="invalid-feedback">{formErrors.name}</div>
+                  )}
+                </div>
 
-            <div className="mb-3">
-              <label className="form-label">Mô tả</label>
-              <textarea 
-                className={`form-control ${formErrors.description ? 'is-invalid' : ''}`}
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows="3"
-                placeholder="Mô tả về sản phẩm"
-                disabled={isSubmitting}
-                maxLength={64}
-              />
-              {formErrors.description && (
-                <div className="invalid-feedback">{formErrors.description}</div>
-              )}
-            </div>
+                <div className="mb-3">
+                  <label className="form-label">Mô tả</label>
+                  <textarea 
+                    className={`form-control ${formErrors.description ? 'is-invalid' : ''}`}
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows="3"
+                    placeholder="Mô tả về vật phẩm"
+                    disabled={isSubmitting}
+                    maxLength={64}
+                  />
+                  {formErrors.description && (
+                    <div className="invalid-feedback">{formErrors.description}</div>
+                  )}
+                </div>
 
-            <div className="mb-3">
-              <label className="form-label">Hình ảnh</label>
-              <div className="d-flex gap-3 align-items-start">
-                <div className="flex-grow-1">
+                <div className="mb-3">
+                  <label className="form-label">Giftcode</label>
+                  <input 
+                    type="text" 
+                    className={`form-control ${formErrors.traitType ? 'is-invalid' : ''}`}
+                    name="traitType"
+                    value={formData.traitType}
+                    onChange={handleInputChange}
+                    placeholder="Nhập Giftcode"
+                    disabled={isSubmitting}
+                    maxLength={8}
+                  />
+                  {formErrors.traitType && (
+                    <div className="invalid-feedback">{formErrors.traitType}</div>
+                  )}
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Độ hiếm</label>
+                  <select
+                    className={`form-control ${formErrors.rarity ? 'is-invalid' : ''}`}
+                    name="rarity"
+                    value={formData.rarity}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Chọn độ hiếm</option>
+                    {RARITY_OPTIONS.map(rarity => (
+                      <option key={rarity} value={rarity}>{rarity}</option>
+                    ))}
+                  </select>
+                  {formErrors.rarity && (
+                    <div className="invalid-feedback">{formErrors.rarity}</div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="col-md-6">
+                <div className="mb-3">
+                  <label className="form-label">Hình ảnh</label>
                   <input 
                     type="file" 
                     className={`form-control ${formErrors.image ? 'is-invalid' : ''}`}
@@ -304,49 +355,27 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
                   <small className="text-muted d-block mt-1">
                     Hỗ trợ: JPG, PNG, GIF (Max: 5MB)
                   </small>
-                </div>
-                {preview && (
-                  <div style={{ width: '100px', height: '100px' }}>
-                    <img 
-                      src={preview} 
-                      alt="Preview" 
-                      className="img-thumbnail"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
 
-            <div className="row mb-3">
-              <div className="col-md-6">
-                <label className="form-label">Tên thuộc tính (không bắt buộc)</label>
-                <input 
-                  type="text" 
-                  className="form-control"
-                  name="attributeName"
-                  value={formData.attributeName}
-                  onChange={handleInputChange}
-                  placeholder="Tên thuộc tính"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Giá trị thuộc tính</label>
-                <input 
-                  type="text" 
-                  className="form-control"
-                  name="attributeValue"
-                  value={formData.attributeValue}
-                  onChange={handleInputChange}
-                  placeholder="Giá trị thuộc tính"
-                  disabled={isSubmitting}
-                />
+                  {preview && (
+                    <div className="mt-3 text-center">
+                      <img 
+                        src={preview} 
+                        alt="Preview" 
+                        className="img-fluid rounded"
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '400px', 
+                          objectFit: 'contain' 
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {uploadProgress > 0 && (
-              <div className="mb-3">
+              <div className="mt-3">
                 <ProgressBar now={uploadProgress} label={`${uploadProgress}%`} />
               </div>
             )}
@@ -363,7 +392,7 @@ const CreateProduct = ({ referenceId, collectionId, onSuccess }) => {
                 Đang tạo...
               </>
             ) : (
-              'Tạo sản phẩm'
+              'Tạo vật phẩm'
             )}
           </Button>
         </Modal.Footer>

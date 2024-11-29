@@ -368,20 +368,6 @@ const MarketplaceHome = ({ referenceId }) => {
         <h1 className="text-center mb-5 display-4 fw-bold text-primary">
           Trang chủ
         </h1>
-        {/* Thêm thông báo thời gian cập nhật cuối cùng */}
-        <div className="text-center mb-3">
-          <small className="text-muted">
-            Cập nhật lần cuối: {new Date(lastFetchTime).toLocaleString()}
-            <Button
-              variant="link"
-              size="sm"
-              onClick={handleManualRefresh}
-              className="ms-2 btn btn-primary btn-sm text-decoration-none text-light"
-            >
-              Làm mới ngay
-            </Button>
-          </small>
-        </div>
 
         {/* Pagination and display controls */}
         <div className="row g-3 align-items-center">
@@ -474,6 +460,35 @@ const MarketplaceHome = ({ referenceId }) => {
           })}
         </div>
       </div>
+      {/* Thêm thông báo thời gian cập nhật cuối cùng */}
+      {/* Positioning the update notification in the bottom right corner */}
+      <div
+        className="text-center mb-3"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          backgroundColor: '#4F46E5',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '5px',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <small className="text-light d-flex align-items-center justify-content-center">
+          Cập nhật lần cuối: {new Date(lastFetchTime).toLocaleString()}
+          <Button
+            variant="outline-light"
+            size="sm"
+            onClick={handleManualRefresh}
+            className="ms-2"
+          >
+            <i className="bi bi-arrow-clockwise me-2" style={{ fontSize: '0.875rem' }}></i>
+            Làm mới
+          </Button>
+        </small>
+      </div>
       {/* Purchase Confirmation Modal */}
       {selectedItem && (
         <Modal show={!!selectedItem} onHide={() => setSelectedItem(null)} size="lg">
@@ -512,7 +527,7 @@ const MarketplaceHome = ({ referenceId }) => {
                     <ul className="list-group list-group-flush">
                       {selectedItem.attributes.map((attr, index) => (
                         <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                          <span className="text-muted">{attr.traitType}</span>
+                          <span className="text-muted">********</span>
                           <span className="badge bg-primary rounded-pill">{attr.value}</span>
                         </li>
                       ))}
