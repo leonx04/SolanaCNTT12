@@ -1,96 +1,72 @@
-import axios from 'axios';
-import 'driver.js/dist/driver.css';
 import React, { useEffect, useState } from 'react';
-import { driver as Driver } from 'driver.js';
-import { apiKey } from '../api';
+import axios from 'axios';
 import unidecode from 'unidecode';
+import { apiKey } from '../api';
 
-const apiBaseUrl = "https://api.gameshift.dev/nx/users";
 const PHANTOM_WALLET_DOWNLOAD_LINK = "https://phantom.app/download";
+const API_BASE_URL = "https://api.gameshift.dev/nx/users";
 
 const AuthForm = ({ setIsLoggedIn, setUserData }) => {
-  // Trạng thái quản lý dữ liệu biểu mẫu
   const [formData, setFormData] = useState({
-    referenceId: '',  // Mã định danh duy nhất của người dùng
-    email: '',        // Địa chỉ email để xác thực
-    externalWalletAddress: ''  // Địa chỉ ví Solana khi đăng ký
+    referenceId: '',
+    email: '',
+    externalWalletAddress: ''
   });
 
-  // Các trạng thái quản lý giao diện và logic
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isFormVisible, setIsFormVisible] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPhantomInstalled, setIsPhantomInstalled] = useState(false);
+  const [formErrors, setFormErrors] = useState({
+    referenceId: '',
+    email: '',
+    phantomWallet: ''
+  });
 
-  // Kiểm tra và khởi tạo hướng dẫn khi component được tải
+  const [authState, setAuthState] = useState({
+    isRegistering: false,
+    isLoading: false,
+    isPhantomInstalled: false,
+    isFormVisible: true
+  });
+
   useEffect(() => {
-    const checkPhantomWallet = () => {
-      const { solana } = window;
-      setIsPhantomInstalled(!!(solana && solana.isPhantom));
-    };
-
-    checkPhantomWallet();
-    initializeDriverGuide();
+    setAuthState(prev => ({
+      ...prev,
+      isPhantomInstalled: !!(window.solana && window.solana.isPhantom)
+    }));
   }, []);
 
-  // Hàm khởi tạo hướng dẫn từng bước
-  const initializeDriverGuide = () => {
-    const driver = new Driver({
-      animate: true,
-      opacity: 0.75,
-      nextBtnText: 'Tiếp theo',
-      prevBtnText: 'Quay lại',
-      doneBtnText: 'Hoàn tất',
-      steps: [
-        {
-          element: '#referenceId-input',
-          popover: {
-            title: 'Tên tài khoản',
-            description: 'Nhập tên tài khoản duy nhất. Đây là thông tin định danh tài khoản của bạn trong hệ thống.',
-            position: 'bottom'
-          }
-        },
-        {
-          element: '#email-input',
-          popover: {
-            title: 'Email',
-            description: 'Điền địa chỉ email chính xác. Email này sẽ được sử dụng để xác thực và khôi phục tài khoản.',
-            position: 'bottom'
-          }
-        },
-        {
-          element: '#auth-button',
-          popover: {
-            title: 'Xác thực Tài khoản',
-            description: 'Nhấn nút để hoàn tất quá trình đăng ký hoặc đăng nhập. Lưu ý đăng ký cần kết nối Phantom Wallet.',
-            position: 'top'
-          }
-        }
-      ]
-    });
-
-    // Tự động bắt đầu hướng dẫn khi trang được tải
-    driver.drive();
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'referenceId':
+        return value.trim() ? '' : 'Tên tài khoản không được để trống';
+      case 'email':
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+          ? ''
+          : 'Địa chỉ email không hợp lệ';
+      default:
+        return '';
+    }
   };
 
-  // Kết nối với Phantom Wallet
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const sanitizedValue = unidecode(value);
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: sanitizedValue
+    }));
+
+    setFormErrors(prev => ({
+      ...prev,
+      [name]: validateField(name, sanitizedValue)
+    }));
+  };
+
   const connectPhantomWallet = async () => {
-    if (!isPhantomInstalled) {
-      setErrorMessage(
-        <div>
-          Phantom Wallet chưa được cài đặt.
-          <a
-            href={PHANTOM_WALLET_DOWNLOAD_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="alert-link ms-1"
-          >
-            Tải Phantom Wallet tại đây
-          </a>
-        </div>
-      );
+    if (!authState.isPhantomInstalled) {
+      setFormErrors(prev => ({
+        ...prev,
+        phantomWallet: 'Phantom Wallet chưa được cài đặt'
+      }));
       return null;
     }
 
@@ -98,260 +74,196 @@ const AuthForm = ({ setIsLoggedIn, setUserData }) => {
       const resp = await window.solana.connect();
       return resp.publicKey.toString();
     } catch (err) {
-      setErrorMessage('Kết nối ví Phantom thất bại');
+      setFormErrors(prev => ({
+        ...prev,
+        phantomWallet: 'Kết nối ví Phantom thất bại'
+      }));
       return null;
     }
   };
 
-  // Cập nhật trạng thái form khi người dùng thay đổi giá trị
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const updatedValue = unidecode(value);  // Sử dụng unidecode để loại bỏ dấu
+  const handleSubmit = async () => {
+    // Validate all fields
+    const newErrors = {
+      referenceId: validateField('referenceId', formData.referenceId),
+      email: validateField('email', formData.email),
+      phantomWallet: authState.isRegistering && !authState.isPhantomInstalled
+        ? 'Phantom Wallet chưa được cài đặt'
+        : ''
+    };
 
-    setFormData(prev => ({
-      ...prev,
-      [name]: updatedValue
-    }));
-    setErrorMessage('');
-    setSuccessMessage('');
-  };
+    setFormErrors(newErrors);
 
-  // Xác thực dữ liệu biểu mẫu
-  const validateForm = () => {
-    if (!formData.referenceId || !formData.email) {
-      setErrorMessage('Vui lòng nhập đầy đủ thông tin.');
-      return false;
+    // Check if there are any errors
+    if (Object.values(newErrors).some(error => error !== '')) {
+      return;
     }
-    if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      setErrorMessage('Email không hợp lệ.');
-      return false;
-    }
-    if (isRegistering && !isPhantomInstalled) {
-      setErrorMessage(
-        <div>
-          Phantom Wallet chưa được cài đặt.
-          <a
-            href={PHANTOM_WALLET_DOWNLOAD_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="alert-link ms-1"
-          >
-            Tải Phantom Wallet tại đây
-          </a>
-        </div>
-      );
-      return false;
-    }
-    return true;
-  };
 
-  // Xử lý hành động đăng ký hoặc đăng nhập
-  const handleAction = async (isRegister) => {
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    setAuthState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      if (isRegister) {
-        // Kiểm tra và yêu cầu kết nối Phantom Wallet
-        if (!isPhantomInstalled) {
-          setErrorMessage(
-            <div>
-              Phantom Wallet chưa được cài đặt.
-              <a
-                href={PHANTOM_WALLET_DOWNLOAD_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="alert-link ms-1"
-              >
-                Tải Phantom Wallet tại đây
-              </a>
-            </div>
-          );
-          setIsLoading(false);
-          return;
-        }
-
+      if (authState.isRegistering) {
         const walletAddress = await connectPhantomWallet();
-        if (!walletAddress) {
-          setIsLoading(false);
-          return;
-        }
+        if (!walletAddress) return;
 
-        // Cập nhật địa chỉ ví vào form
-        setFormData(prev => ({
-          ...prev,
+        await axios.post(API_BASE_URL, {
+          referenceId: formData.referenceId,
+          email: formData.email,
           externalWalletAddress: walletAddress
-        }));
-
-        const config = {
+        }, {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
             'x-api-key': apiKey
           }
-        };
-
-        // Gửi yêu cầu đăng ký
-        await axios.post(apiBaseUrl, {
-          referenceId: formData.referenceId,
-          email: formData.email,
-          externalWalletAddress: walletAddress
-        }, config);
-
-        setSuccessMessage('Đăng ký thành công!');
+        });
       } else {
-        // Quy trình đăng nhập
-        const config = {
+        const response = await axios.get(`${API_BASE_URL}/${formData.referenceId}`, {
           headers: {
             'accept': 'application/json',
             'x-api-key': apiKey
           }
-        };
-
-        const response = await axios.get(`${apiBaseUrl}/${formData.referenceId}`, config);
+        });
 
         if (response.data.email !== formData.email) {
           throw new Error('Email không khớp');
         }
-
-        setSuccessMessage('Đăng nhập thành công!');
       }
 
-      // Cập nhật trạng thái sau khi thành công
+      // Thành công
       setTimeout(() => {
         setUserData(formData);
         setIsLoggedIn(true);
-        setIsFormVisible(false);
+        setAuthState(prev => ({ ...prev, isFormVisible: false }));
       }, 1500);
+
     } catch (err) {
-      // Xử lý các lỗi từ phía server
-      setErrorMessage(
-        err.response?.status === 409
-          ? 'Tài khoản đã tồn tại.'
-          : 'Đã xảy ra lỗi. Vui lòng thử lại sau.'
-      );
+      setFormErrors(prev => ({
+        ...prev,
+        submit: err.response?.status === 409
+          ? 'Tài khoản đã tồn tại'
+          : 'Đã xảy ra lỗi. Vui lòng thử lại sau'
+      }));
     } finally {
-      setIsLoading(false);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // Render spinner khi form ẩn
-  if (!isFormVisible) {
+  // Render loading spinner
+  if (!authState.isFormVisible) {
     return (
       <div className="position-absolute top-50 start-50 translate-middle text-center">
         <div className="spinner-grow text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">Đang tải...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="auth-form-container">
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="auth-form-wrapper">
-            <div className="bg-white rounded-4 p-4 shadow-sm">
-              <div className="auth-form-title">
-                <h4 className="fw-bold mb-1 text-dark">
-                  {isRegistering ? 'Tạo tài khoản' : 'Đăng nhập'}
-                </h4>
-                <p className="text-secondary small mb-0">
-                  {isRegistering
-                    ? 'Nhập thông tin để tạo tài khoản mới'
-                    : 'Đăng nhập để tiếp tục'}
+    <div className="container min-vh-100 d-flex align-items-center">
+      <div className="row justify-content-center w-100">
+        <div className="col-md-6 col-lg-5">
+          <div className="card shadow-lg rounded-4 border-0">
+            <div className="card-body p-5">
+              <div className="text-center mb-4">
+                <img
+                  src="https://raw.githubusercontent.com/leonx04/SolanaCNTT12/refs/heads/main/public/favicon.ico"
+                  alt="Authentication"
+                  className="rounded-circle mb-3"
+                  style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                />
+                <h2 className="fw-bold mb-2">
+                  {authState.isRegistering ? 'Đăng Ký' : 'Đăng Nhập'}
+                </h2>
+                <p className="text-muted">
+                  {authState.isRegistering
+                    ? 'Tạo tài khoản mới của bạn'
+                    : 'Đăng nhập để truy cập tài khoản'}
                 </p>
               </div>
 
-              <form>
+              <div>
                 <div className="mb-3">
                   <input
-                    id="referenceId-input"
                     type="text"
-                    className="form-control auth-form-input"
+                    className={`form-control form-control-lg ${formErrors.referenceId ? 'is-invalid' : ''}`}
                     placeholder="Tên tài khoản"
                     name="referenceId"
                     value={formData.referenceId}
                     onChange={handleInputChange}
-                    disabled={isLoading}
+                    disabled={authState.isLoading}
                   />
+                  {formErrors.referenceId && (
+                    <div className="invalid-feedback">{formErrors.referenceId}</div>
+                  )}
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-3">
                   <input
-                    id="email-input"
                     type="email"
-                    className="form-control auth-form-input"
+                    className={`form-control form-control-lg ${formErrors.email ? 'is-invalid' : ''}`}
                     placeholder="Email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    disabled={isLoading}
+                    disabled={authState.isLoading}
                   />
+                  {formErrors.email && (
+                    <div className="invalid-feedback">{formErrors.email}</div>
+                  )}
                 </div>
 
-                {isRegistering && !isPhantomInstalled && (
-                  <div className="alert alert-warning py-2 mt-3 mb-3 text-center small">
-                    Vui lòng cài đặt Phantom Wallet để đăng ký
+                {authState.isRegistering && !authState.isPhantomInstalled && (
+                  <div className="alert alert-warning text-center small mb-3">
+                    Cài đặt Phantom Wallet để tiếp tục
                     <a
                       href={PHANTOM_WALLET_DOWNLOAD_LINK}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="alert-link ms-1"
                     >
-                      Tải tại đây
+                      Tải ngay
                     </a>
                   </div>
                 )}
 
                 <button
-                  id="auth-button"
                   type="button"
-                  className={`btn auth-form-button ${isRegistering ? 'btn-dark' : 'btn-primary'}`}
-                  onClick={() => handleAction(isRegistering)}
-                  disabled={isLoading || (isRegistering && !isPhantomInstalled)}
+                  className={`btn btn-${authState.isRegistering ? 'dark' : 'primary'} btn-lg w-100`}
+                  onClick={handleSubmit}
+                  disabled={authState.isLoading || (authState.isRegistering && !authState.isPhantomInstalled)}
                 >
-                  {isLoading ? (
+                  {authState.isLoading ? (
                     <div className="spinner-border spinner-border-sm" role="status">
-                      <span className="visually-hidden">Loading...</span>
+                      <span className="visually-hidden">Đang xử lý...</span>
                     </div>
                   ) : (
-                    <span className="fw-semibold">
-                      {isRegistering ? 'Đăng ký' : 'Đăng nhập'}
-                    </span>
+                    <span>{authState.isRegistering ? 'Đăng Ký' : 'Đăng Nhập'}</span>
                   )}
                 </button>
-              </form>
 
-              {errorMessage && (
-                <div className="alert alert-danger py-2 mt-3 mb-0 text-center small">
-                  {errorMessage}
+                {formErrors.submit && (
+                  <div className="alert alert-danger text-center small mt-3 mb-0">
+                    {formErrors.submit}
+                  </div>
+                )}
+
+                <div className="text-center mt-3">
+                  <button
+                    type="button"
+                    className="btn btn-link text-decoration-none text-muted"
+                    onClick={() => setAuthState(prev => ({
+                      ...prev,
+                      isRegistering: !prev.isRegistering
+                    }))}
+                    disabled={authState.isLoading}
+                  >
+                    {authState.isRegistering
+                      ? 'Đã có tài khoản? Đăng nhập'
+                      : 'Chưa có tài khoản? Đăng ký'}
+                  </button>
                 </div>
-              )}
-
-              {successMessage && (
-                <div className="alert alert-success py-2 mt-3 mb-0 text-center small">
-                  {successMessage}
-                </div>
-              )}
-
-              <div className="auth-form-toggle">
-                <button
-                  type="button"
-                  className="btn btn-link text-decoration-none p-0 text-secondary"
-                  onClick={() => setIsRegistering(!isRegistering)}
-                  disabled={isLoading}
-                >
-                  <small>
-                    {isRegistering ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}
-                    <span className="text-primary fw-semibold">
-                      {isRegistering ? 'Đăng nhập' : 'Đăng ký'}
-                    </span>
-                  </small>
-                </button>
               </div>
             </div>
           </div>
