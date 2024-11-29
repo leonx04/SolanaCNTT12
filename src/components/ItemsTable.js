@@ -514,7 +514,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                                                                     className="btn btn-sm btn-outline-secondary rounded-start"
                                                                     onClick={() => openEditModal(item)}
                                                                 >
-                                                                    <i className="fas fa-edit me-1"></i>Sửa
+                                                                    <i className="fas fa-edit me-1"></i>Xem
                                                                 </button>
                                                             )}
 
@@ -667,7 +667,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                     className="bg-gradient-primary text-dark"
                 >
                     <Modal.Title className="w-100 text-center">
-                        Chỉnh Sửa Chi Tiết Vật Phẩm
+                        Xem Chi Tiết Vật Phẩm
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="bg-light">
