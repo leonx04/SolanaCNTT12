@@ -234,12 +234,14 @@ const MarketplaceHome = ({ referenceId }) => {
   // Interval để tự động fetch dữ liệu (mỗi 30 giây)
   useEffect(() => {
     const intervalId = setInterval(() => {
-      fetchAllItems();
-    }, 30000); // 30 giây
-
-    // Cleanup interval khi component bị hủy
+      if (!document.hidden) { // Chỉ fetch khi tab trình duyệt hoạt động
+        fetchAllItems();
+      }
+    }, 30000);
+  
     return () => clearInterval(intervalId);
   }, [fetchAllItems]);
+  
 
   // Fetch data with cleanup
   useEffect(() => {
@@ -551,7 +553,7 @@ const MarketplaceHome = ({ referenceId }) => {
 
                     {selectedItem.attributes && selectedItem.attributes.length > 0 && (
                       <div className="attributes-section mb-4">
-                        <h5 className="mb-3 text-muted">Thuộc tính</h5>
+                        <h5 className="mb-3 text-muted">Độ hiếm</h5>
                         <div className="bg-light rounded-3 overflow-hidden">
                           {selectedItem.attributes.map((attr, index) => (
                             <div
@@ -559,7 +561,6 @@ const MarketplaceHome = ({ referenceId }) => {
                               className={`d-flex justify-content-between align-items-center p-2 ${index < selectedItem.attributes.length - 1 ? 'border-bottom' : ''
                                 }`}
                             >
-                              <span className="text-muted">********</span>
                               <span className="badge bg-primary rounded-pill">
                                 {attr.value}
                               </span>
