@@ -2,38 +2,35 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Form, Modal, Pagination } from 'react-bootstrap';
 import { apiKey } from '../api';
 
+const CLOUDINARY_UPLOAD_PRESET = 'GameNFT';
+const CLOUDINARY_CLOUD_NAME = 'dg8b8iuzs';
+
 const ItemsTable = ({ ownerReferenceId }) => {
-    // State quản lý danh sách items
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // State quản lý việc  và hủy bán
     const [selectedItem, setSelectedItem] = useState(null);
     const [listingPrice, setListingPrice] = useState('');
     const [showListingModal, setShowListingModal] = useState(false);
     const [listingError, setListingError] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // State mới cho chức năng chỉnh sửa
     const [showEditModal, setShowEditModal] = useState(false);
     const [editItem, setEditItem] = useState(null);
     const [editImageUrl, setEditImageUrl] = useState('');
     const [editAttributes, setEditAttributes] = useState([]);
     const [editError, setEditError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    // Thêm vào các state khác của component
     const [editImageFile, setEditImageFile] = useState(null);
     const [editImagePreview, setEditImagePreview] = useState(null);
-    // Các state mới cho phân trang
+
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
-    // Thêm ở đầu file, ngay sau các import
-    const CLOUDINARY_UPLOAD_PRESET = 'GameNFT';
-    const CLOUDINARY_CLOUD_NAME = 'dg8b8iuzs';
+    const [marketFilter, setMarketFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // Hàm upload ảnh lên Cloudinary
     const uploadImageToCloudinary = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -85,11 +82,6 @@ const ItemsTable = ({ ownerReferenceId }) => {
         }
     };
 
-
-    // State quản lý bộ lọc thị trường
-    const [marketFilter, setMarketFilter] = useState('all');
-
-    // Hàm tìm nạp danh sách items
     const fetchItems = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -127,13 +119,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
             }
 
             const data = await response.json();
-
-            if (marketFilter === 'notForSale') {
-                setItems(data.data.filter(item => item.item.priceCents === null));
-            } else {
-                setItems(data.data || []);
-            }
-
+            setItems(data.data || []);
         } catch (err) {
             setError('Lỗi khi tải items: ' + err.message);
         } finally {
@@ -141,19 +127,27 @@ const ItemsTable = ({ ownerReferenceId }) => {
         }
     }, [ownerReferenceId, marketFilter]);
 
-    // Thay đổi cách tính currentItems và totalPages
     const filteredItems = items.filter(itemData => {
         const { type, item } = itemData;
 
-        // Lọc theo loại và trạng thái thị trường
         if (type === 'Currency') return false;
 
+        const matchesSearch = 
+            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.attributes && item.attributes.some(attr => 
+                attr.traitType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                attr.value.toLowerCase().includes(searchTerm.toLowerCase())
+            ));
+
+        if (!matchesSearch) return false;
+
         if (marketFilter === 'forSale') {
-            return item.priceCents > 0 && item.status === 'Committed';
+            return item.price && item.price.naturalAmount > 0 && item.status === 'Committed';
         }
 
         if (marketFilter === 'notForSale') {
-            return !item.priceCents || item.priceCents === 0;
+            return !item.price || item.price.naturalAmount === 0;
         }
 
         return true;
@@ -163,16 +157,12 @@ const ItemsTable = ({ ownerReferenceId }) => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
 
-    // Tính tổng số trang dựa trên filteredItems
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
-
-    // Tự động tải items khi component mount hoặc các dependency thay đổi
     useEffect(() => {
         fetchItems();
-    }, [ownerReferenceId, marketFilter, fetchItems]);  // Thêm fetchItems vào dependencies
+    }, [ownerReferenceId, marketFilter, searchTerm, fetchItems]);
 
-    // Hàm xử lý  tài sản bán
     const handleListForSale = async () => {
         if (!selectedItem || !listingPrice) {
             setListingError('Vui lòng nhập giá hợp lệ');
@@ -194,7 +184,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                     },
                     body: JSON.stringify({
                         price: {
-                            currencyId: 'USDC', // Cố định sử dụng USDC
+                            currencyId: 'USDC',
                             naturalAmount: listingPrice
                         }
                     })
@@ -208,12 +198,10 @@ const ItemsTable = ({ ownerReferenceId }) => {
 
             const data = await response.json();
 
-            // Thay vì window.location.href, mở tab mới
             if (data.consentUrl) {
                 window.open(data.consentUrl, '_blank', 'noopener,noreferrer');
             }
 
-            // Làm mới danh sách sau khi 
             fetchItems();
         } catch (err) {
             setListingError(err.message);
@@ -222,13 +210,12 @@ const ItemsTable = ({ ownerReferenceId }) => {
             setShowListingModal(false);
         }
     };
-    // Hàm xử lý hủy bán tài sản
+
     const handleCancelSale = async (itemId) => {
         setIsProcessing(true);
         setListingError(null);
 
         try {
-            // Gọi API để hủy bán tài sản với URL mới cho unique assets
             const response = await fetch(
                 `https://api.gameshift.dev/nx/unique-assets/${itemId}/cancel-listing`,
                 {
@@ -247,13 +234,11 @@ const ItemsTable = ({ ownerReferenceId }) => {
 
             const data = await response.json();
 
-            // Mở URL đồng ý trong tab mới thay vì chuyển hướng
             if (data.consentUrl) {
                 window.open(data.consentUrl, '_blank', 'noopener,noreferrer');
             }
 
-            // Làm mới danh sách sau khi hủy bán
-            fetchItems();
+            await fetchItems();
         } catch (err) {
             setListingError(err.message);
         } finally {
@@ -261,8 +246,6 @@ const ItemsTable = ({ ownerReferenceId }) => {
         }
     };
 
-
-    // Mở modal để  tài sản
     const openListingModal = (item) => {
         setSelectedItem(item);
         setListingPrice('');
@@ -270,14 +253,12 @@ const ItemsTable = ({ ownerReferenceId }) => {
         setShowListingModal(true);
     };
 
-    // Hàm mở modal chỉnh sửa
     const openEditModal = (item) => {
         setEditItem(item);
         setEditImageUrl(item.imageUrl || '');
         setEditImageFile(null);
         setEditImagePreview(null);
 
-        // Khởi tạo attributes với một thuộc tính mặc định nếu không có
         setEditAttributes(item.attributes && item.attributes.length > 0
             ? item.attributes
             : [{ traitType: '', value: '' }]
@@ -287,13 +268,10 @@ const ItemsTable = ({ ownerReferenceId }) => {
         setShowEditModal(true);
     };
 
-
-    // Hàm cập nhật thuộc tính
     const updateAttribute = (index, field, value) => {
         const newAttributes = [...editAttributes];
 
         if (field === 'traitType') {
-            // Giới hạn 8 ký tự cho Giftcode
             value = value.slice(0, 8);
         }
 
@@ -304,7 +282,6 @@ const ItemsTable = ({ ownerReferenceId }) => {
     const handleEditAsset = async () => {
         if (!editItem) return;
 
-        // Kiểm tra bắt buộc nhập thuộc tính
         if (!editAttributes[0]?.traitType || !editAttributes[0]?.value) {
             setEditError('Vui lòng nhập đầy đủ thông tin Giftcode và Độ hiếm');
             return;
@@ -354,23 +331,28 @@ const ItemsTable = ({ ownerReferenceId }) => {
         }
     };
 
-    // Thêm polling để cập nhật real-time
     useEffect(() => {
         const pollInterval = setInterval(() => {
             fetchItems();
-        }, 10000); // Kiểm tra mỗi 10 giây
+        }, 10000);
 
         return () => clearInterval(pollInterval);
     }, [fetchItems]);
 
     return (
         <div className="card w-100">
-            {/* Tiêu đề và các nút điều khiển */}
             <div className="card-header ">
                 <div className="d-flex justify-content-between align-items-center">
                     <h5 className="card-title mb-0">Kho Vật Phẩm</h5>
                     <div className="d-flex align-items-center">
-                        {/* Dropdown lọc thị trường */}
+                        <input
+                            type="text"
+                            className="form-control form-control-sm me-2"
+                            placeholder="Tìm kiếm..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '200px' }}
+                        />
                         <select
                             className="form-select form-select-sm me-2"
                             style={{ width: 'auto' }}
@@ -391,9 +373,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                 </div>
             </div>
 
-            {/* Nội dung danh sách items */}
             <div className="card-body p-0">
-                {/* Trạng thái tải và lỗi */}
                 {loading ? (
                     <div className="d-flex justify-content-center align-items-center p-5">
                         <div className="spinner-border text-primary" role="status">
@@ -451,6 +431,8 @@ const ItemsTable = ({ ownerReferenceId }) => {
                                         const { type, item } = itemData;
                                         if (type === 'Currency') return null;
 
+                                        const isForSale = item.price && item.price.naturalAmount > 0 && item.status === 'Committed';
+
                                         return (
                                             <tr key={index}>
                                                 <td>
@@ -496,11 +478,11 @@ const ItemsTable = ({ ownerReferenceId }) => {
                                                     )}
                                                 </td>
                                                 <td>
-                                                    {(item.priceCents > 0 && item.status === 'Committed') ? (
+                                                    {isForSale ? (
                                                         <span className="badge bg-success status-badge">
                                                             Đang Bán
                                                             <br />
-                                                            <small>{(item.priceCents / 100).toFixed(2)} USDC</small>
+                                                            <small>{(item.price.naturalAmount / 100).toFixed(2)} USDC</small>
                                                         </span>
                                                     ) : (
                                                         <span className="badge bg-secondary status-badge">Chưa Bán</span>
@@ -509,18 +491,9 @@ const ItemsTable = ({ ownerReferenceId }) => {
                                                 <td className="text-end">
                                                     {type === 'UniqueAsset' && (
                                                         <div className="btn-group" role="group">
-                                                            {!(item.priceCents > 0 && item.status === 'Committed') && (
+                                                            {isForSale ? (
                                                                 <button
-                                                                    className="btn btn-sm btn-outline-secondary rounded-start"
-                                                                    onClick={() => openEditModal(item)}
-                                                                >
-                                                                    <i className="fas fa-edit me-1"></i>Xem
-                                                                </button>
-                                                            )}
-
-                                                            {item.priceCents > 0 && item.status === 'Committed' ? (
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-danger rounded-end"
+                                                                    className="btn btn-sm btn-outline-danger"
                                                                     onClick={() => handleCancelSale(item.id)}
                                                                     disabled={isProcessing}
                                                                 >
@@ -528,12 +501,20 @@ const ItemsTable = ({ ownerReferenceId }) => {
                                                                     {isProcessing ? 'Đang Xử Lý...' : 'Hủy Bán'}
                                                                 </button>
                                                             ) : (
-                                                                <button
-                                                                    className="btn btn-sm btn-outline-primary rounded-end"
-                                                                    onClick={() => openListingModal(item)}
-                                                                >
-                                                                    <i className="fas fa-tag me-1"></i>Bán
-                                                                </button>
+                                                                <>
+                                                                    <button
+                                                                        className="btn btn-sm btn-outline-secondary"
+                                                                        onClick={() => openEditModal(item)}
+                                                                    >
+                                                                        <i className="fas fa-edit me-1"></i>Xem
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-sm btn-outline-primary"
+                                                                        onClick={() => openListingModal(item)}
+                                                                    >
+                                                                        <i className="fas fa-tag me-1"></i>Bán
+                                                                    </button>
+                                                                </>
                                                             )}
                                                         </div>
                                                     )}
@@ -545,8 +526,7 @@ const ItemsTable = ({ ownerReferenceId }) => {
                             </table>
                         </div>
 
-                        {/* Phân trang */}
-                        <div className="card-footer  border-top-0 d-flex justify-content-between align-items-center px-3 py-2">
+                        <div className="card-footer border-top-0 d-flex justify-content-between align-items-center px-3 py-2">
                             <div className="d-flex align-items-center">
                                 <span className="text-muted me-2">Hiển thị:</span>
                                 <select
@@ -603,10 +583,9 @@ const ItemsTable = ({ ownerReferenceId }) => {
                 )}
             </div>
 
-            {/* Modal  bán */}
             <Modal show={showListingModal} onHide={() => setShowListingModal(false)}>
                 <Modal.Header closeButton>
-                    <Modal.Title> Tài Sản Bán</Modal.Title>
+                    <Modal.Title>Tài Sản Bán</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     {listingError && (
@@ -649,12 +628,11 @@ const ItemsTable = ({ ownerReferenceId }) => {
                         onClick={handleListForSale}
                         disabled={isProcessing || !listingPrice}
                     >
-                        {isProcessing ? 'Đang Xử Lý...' : ' Bán'}
+                        {isProcessing ? 'Đang Xử Lý...' : 'Bán'}
                     </Button>
                 </Modal.Footer>
             </Modal>
 
-            {/* Modal chỉnh sửa tài sản */}
             <Modal
                 show={showEditModal}
                 onHide={() => setShowEditModal(false)}
@@ -676,7 +654,6 @@ const ItemsTable = ({ ownerReferenceId }) => {
                     )}
 
                     <div className="row">
-                        {/* Phần ảnh với preview lớn hơn */}
                         <div className="col-md-5">
                             <div
                                 className="image-preview-container mb-3 bg-white p-3 rounded shadow-sm"
@@ -704,7 +681,6 @@ const ItemsTable = ({ ownerReferenceId }) => {
                             />
                         </div>
 
-                        {/* Phần thông tin và thuộc tính */}
                         <div className="col-md-7">
                             <Form.Group className="mb-3">
                                 <Form.Label>Tên Vật Phẩm</Form.Label>
@@ -774,3 +750,4 @@ const ItemsTable = ({ ownerReferenceId }) => {
 };
 
 export default ItemsTable;
+
