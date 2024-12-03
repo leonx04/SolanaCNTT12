@@ -50,19 +50,15 @@ const usePagination = (items, initialPerPage = 10) => {
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
-  // Hàm tạo danh sách các trang để hiển thị
   const getPageNumbers = () => {
-    const maxPagesToShow = 5; // Số trang tối đa hiển thị
+    const maxPagesToShow = 5;
 
-    // Nếu tổng số trang nhỏ hơn maxPagesToShow, hiển thị hết
     if (totalPages <= maxPagesToShow) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
 
-    // Logic để hiển thị các trang một cách thông minh
     const leftSide = Math.floor((maxPagesToShow - 3) / 2);
 
-    // Nếu trang hiện tại ở đầu
     if (currentPage <= maxPagesToShow - 2) {
       return [
         ...Array.from({ length: maxPagesToShow - 1 }, (_, i) => i + 1),
@@ -71,7 +67,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       ];
     }
 
-    // Nếu trang hiện tại ở cuối
     if (currentPage > totalPages - (maxPagesToShow - 2)) {
       return [
         1,
@@ -82,7 +77,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       ];
     }
 
-    // Các trường hợp ở giữa
     return [
       1,
       '...',
@@ -99,7 +93,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   return (
     <nav>
       <ul className="pagination mb-0 justify-content-center">
-        {/* Nút Previous */}
         <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
           <Button
             variant="outline-secondary"
@@ -111,7 +104,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
           </Button>
         </li>
 
-        {/* Các nút số trang */}
         {pageNumbers.map((page, index) => {
           if (page === '...') {
             return (
@@ -138,7 +130,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
           );
         })}
 
-        {/* Nút Next */}
         <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
           <Button
             variant="outline-secondary"
@@ -154,7 +145,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
-// Move sortItems outside of the component
 const sortItems = (items, sortOrder) => {
   switch (sortOrder) {
     case 'price-high-low':
@@ -179,18 +169,18 @@ const MarketplaceHome = ({ referenceId }) => {
   const [buyError, setBuyError] = useState(null);
   const [sortOrder, setSortOrder] = useState('default');
   const [lastFetchTime, setLastFetchTime] = useState(Date.now());
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Memoized filter function
   const filteredItems = useMemo(() => {
     const filtered = allItems.filter(itemData =>
       itemData.type === 'UniqueAsset' &&
       itemData.item.price && itemData.item.price.naturalAmount !== null &&
-      itemData.item.owner.referenceId !== referenceId
+      itemData.item.owner.referenceId !== referenceId &&
+      itemData.item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     return sortItems(filtered, sortOrder);
-  }, [allItems, referenceId, sortOrder]);
+  }, [allItems, referenceId, sortOrder, searchTerm]);
 
-  // Optimized fetch function with cancellation
   const fetchAllItems = useCallback(async (signal) => {
     setLoading(true);
     setError(null);
@@ -223,7 +213,6 @@ const MarketplaceHome = ({ referenceId }) => {
         page++;
       }
 
-      // So sánh dữ liệu mới với dữ liệu cũ
       const hasChanged = JSON.stringify(allFetchedItems) !== JSON.stringify(allItems);
 
       if (hasChanged) {
@@ -242,15 +231,13 @@ const MarketplaceHome = ({ referenceId }) => {
     }
   }, [allItems]);
 
-  // Thêm nút làm mới thủ công
   const handleManualRefresh = () => {
     fetchAllItems();
   };
 
-  // Interval để tự động fetch dữ liệu (mỗi 30 giây)
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (!document.hidden) { // Chỉ fetch khi tab trình duyệt hoạt động
+      if (!document.hidden) {
         fetchAllItems();
       }
     }, 30000);
@@ -258,7 +245,6 @@ const MarketplaceHome = ({ referenceId }) => {
     return () => clearInterval(intervalId);
   }, [fetchAllItems]);
 
-  // Fetch data with cleanup
   useEffect(() => {
     const controller = new AbortController();
 
@@ -280,7 +266,6 @@ const MarketplaceHome = ({ referenceId }) => {
     };
   }, [fetchAllItems]);
 
-  // Pagination hook
   const {
     currentItems,
     currentPage,
@@ -291,14 +276,11 @@ const MarketplaceHome = ({ referenceId }) => {
     changePerPage
   } = usePagination(filteredItems);
 
-  // Buy item handler
   const handleBuyItem = async (itemData) => {
-    // Thay vì để trực tiếp itemData, hãy trích xuất item
     setSelectedItem(itemData.item);
     setBuyError(null);
   };
 
-  // Buy with Phantom Wallet
   const buyItemWithPhantomWallet = async () => {
     setBuyLoading(true);
     setBuyError(null);
@@ -323,7 +305,6 @@ const MarketplaceHome = ({ referenceId }) => {
         }
       );
 
-      // Bỏ qua transactionId, chỉ sử dụng consentUrl
       const { consentUrl } = response.data;
       window.open(consentUrl, '_blank');
       fetchAllItems();
@@ -340,7 +321,10 @@ const MarketplaceHome = ({ referenceId }) => {
     }
   };
 
-  // Render loading state
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -349,7 +333,6 @@ const MarketplaceHome = ({ referenceId }) => {
     );
   }
 
-  // Render error state
   if (error) {
     return (
       <Alert variant="danger" className="text-center">
@@ -362,21 +345,6 @@ const MarketplaceHome = ({ referenceId }) => {
           Thử lại
         </Button>
       </Alert>
-    );
-  }
-
-  // Render empty state
-  if (filteredItems.length === 0) {
-    return (
-      <div className="container text-center py-5">
-        <h2 className="text-muted">Hiện tại chưa có sản phẩm nào để mua</h2>
-        <Button
-          variant="primary"
-          onClick={() => fetchAllItems()}
-        >
-          Tải lại
-        </Button>
-      </div>
     );
   }
 
@@ -404,12 +372,6 @@ const MarketplaceHome = ({ referenceId }) => {
           </div>
         </div>
 
-        <div className="mb-4">
-          <Form.Control
-            placeholder="Search for items..."
-            aria-label="Search for items"
-          />
-        </div>
 
         <div className="text-center mb-5">
           <h1 className="display-4 fw-bold text-white mb-3" style={{
@@ -422,7 +384,6 @@ const MarketplaceHome = ({ referenceId }) => {
           <p className="lead text-white-50">Khám phá và sở hữu những tài sản độc đáo</p>
         </div>
 
-        {/* Pagination and Controls */}
         <div className="row mb-4 g-3 align-items-center">
           <div className="col-12 col-md-4">
             <div className="d-flex align-items-center text-white">
@@ -458,11 +419,19 @@ const MarketplaceHome = ({ referenceId }) => {
           </div>
         </div>
 
-        {/* Sort Dropdown */}
+        <div className="mb-4">
+          <Form.Control
+            placeholder="Tìm kiếm items..."
+            aria-label="Tìm kiếm items"
+            value={searchTerm}
+            onChange={handleSearch}
+          />
+        </div>
+
         <div className="d-flex justify-content-end mb-3 text-white">
           <Dropdown>
             <Dropdown.Toggle variant="secondary" id="dropdown-sort">
-              Sort By
+              Sort BySort By
             </Dropdown.Toggle>
             <Dropdown.Menu>
               <Dropdown.Item onClick={() => setSortOrder('default')}>Default</Dropdown.Item>
@@ -474,65 +443,69 @@ const MarketplaceHome = ({ referenceId }) => {
           </Dropdown>
         </div>
 
-        {/* Product Grid */}
-        <div className="row row-cols-1 row-cols-md-3 g-4">
-          {currentItems.map((itemData) => {
-            const item = itemData.item;
-            return (
-              <div key={item.id} className="col">
-                <div
-                  className="card h-100 bg-transparent border-0 card-hover-effect"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(20px)',
-                    borderRadius: '15px',
-                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-                    border: '1px solid rgba(255, 255, 255, 0.18)'
-                  }}
-                >
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-5">
+            <h2 className="text-muted">Không tìm thấy sản phẩm phù hợp</h2>
+          </div>
+        ) : (
+          <div className="row row-cols-1 row-cols-md-3 g-4">
+            {currentItems.map((itemData) => {
+              const item = itemData.item;
+              return (
+                <div key={item.id} className="col">
                   <div
-                    className="card-img-top position-relative overflow-hidden"
+                    className="card h-100 bg-transparent border-0 card-hover-effect"
                     style={{
-                      height: '250px',
-                      borderTopLeftRadius: '15px',
-                      borderTopRightRadius: '15px',
-                      background: `url(${item.imageUrl || '/default-image.jpg'}) center/cover no-repeat`
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '15px',
+                      boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                      border: '1px solid rgba(255, 255, 255, 0.18)'
                     }}
                   >
                     <div
-                      className="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-50"
-                      style={{ backdropFilter: 'blur(5px)' }}
-                    >
-                      {`$${parseFloat(item.price.naturalAmount).toFixed(2)} ${item.price.currencyId}`}
-                    </div>
-                  </div>
-
-                  <div className="card-body text-white">
-                    <h5 className="card-title fw-bold mb-2">{item.name}</h5>
-                    <p className="card-text text-white-50 mb-3">
-                      Tác giả: {item.owner.referenceId}
-                    </p>
-
-                    <Button
-                      variant="outline-light"
-                      className="w-100 mt-auto"
-                      onClick={() => handleBuyItem(itemData)}
+                      className="card-img-top position-relative overflow-hidden"
                       style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        border: 'none'
+                        height: '250px',
+                        borderTopLeftRadius: '15px',
+                        borderTopRightRadius: '15px',
+                        background: `url(${item.imageUrl || '/default-image.jpg'}) center/cover no-repeat`
                       }}
                     >
-                      Xem chi tiết
-                    </Button>
+                      <div
+                        className="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-50"
+                        style={{ backdropFilter: 'blur(5px)' }}
+                      >
+                        {`$${parseFloat(item.price.naturalAmount).toFixed(2)} ${item.price.currencyId}`}
+                      </div>
+                    </div>
+
+                    <div className="card-body text-white">
+                      <h5 className="card-title fw-bold mb-2">{item.name}</h5>
+                      <p className="card-text text-white-50 mb-3">
+                        Tác giả: {item.owner.referenceId}
+                      </p>
+
+                      <Button
+                        variant="outline-light"
+                        className="w-100 mt-auto"
+                        onClick={() => handleBuyItem(itemData)}
+                        style={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          border: 'none'
+                        }}
+                      >
+                        Xem chi tiết
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Update Time & Manual Refresh */}
       <div
         className="position-fixed bottom-0 end-0 m-4 text-white"
         style={{
@@ -554,7 +527,6 @@ const MarketplaceHome = ({ referenceId }) => {
         </small>
       </div>
 
-      {/* Giữ nguyên Modal mua hàng như ban đầu */}
       {selectedItem && (
         <Modal
           show={!!selectedItem}
