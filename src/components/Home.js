@@ -382,13 +382,13 @@ const MarketplaceHome = ({ referenceId }) => {
 
   return (
     <div className="marketplace-container position-relative" style={{
-      minHeight: '100vh',
+      minHeight: '500px',
       color: '#ffffff'
     }}>
       <div className="container py-5">
         <div className="mb-5">
           <div className="p-5 text-center bg-image rounded-3" style={{
-            backgroundImage: "url('https://example.com/marketplace-banner.jpg')",
+            backgroundImage: "url('https://static.vecteezy.com/system/resources/previews/004/727/152/non_2x/illustration-of-a-non-fungible-token-nft-background-for-infographics-digital-technology-concept-crypto-art-futuristic-neon-wallpaper-with-typography-vector.jpg')",
             height: '300px',
             backgroundSize: 'cover',
             backgroundPosition: 'center'
@@ -396,8 +396,8 @@ const MarketplaceHome = ({ referenceId }) => {
             <div className="mask" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
               <div className="d-flex justify-content-center align-items-center h-100">
                 <div className="text-white">
-                  <h1 className="mb-3">Welcome to Our Marketplace</h1>
-                  <h4 className="mb-3">Discover Unique Digital Assets</h4>
+                  <h1 className="mb-3">Chào mừng</h1>
+                  <h4 className="mb-3">Đến với thế giới NFT</h4>
                 </div>
               </div>
             </div>
@@ -459,9 +459,9 @@ const MarketplaceHome = ({ referenceId }) => {
         </div>
 
         {/* Sort Dropdown */}
-        <div className="d-flex justify-content-end mb-3">
+        <div className="d-flex justify-content-end mb-3 text-white">
           <Dropdown>
-            <Dropdown.Toggle variant="outline-secondary" id="dropdown-sort">
+            <Dropdown.Toggle variant="secondary" id="dropdown-sort">
               Sort By
             </Dropdown.Toggle>
             <Dropdown.Menu>
