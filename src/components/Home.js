@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Form, Modal, Spinner } from 'react-bootstrap';
+import { Alert, Button, Form, Modal, Spinner, Dropdown } from 'react-bootstrap';
 import { apiKey } from '../api';
 
 const usePagination = (items, initialPerPage = 10) => {
@@ -154,6 +154,22 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
+// Move sortItems outside of the component
+const sortItems = (items, sortOrder) => {
+  switch (sortOrder) {
+    case 'price-high-low':
+      return [...items].sort((a, b) => parseFloat(b.item.price.naturalAmount) - parseFloat(a.item.price.naturalAmount));
+    case 'price-low-high':
+      return [...items].sort((a, b) => parseFloat(a.item.price.naturalAmount) - parseFloat(b.item.price.naturalAmount));
+    case 'name-a-z':
+      return [...items].sort((a, b) => a.item.name.localeCompare(b.item.name));
+    case 'name-z-a':
+      return [...items].sort((a, b) => b.item.name.localeCompare(a.item.name));
+    default:
+      return items;
+  }
+};
+
 const MarketplaceHome = ({ referenceId }) => {
   const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -161,18 +177,18 @@ const MarketplaceHome = ({ referenceId }) => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [buyLoading, setBuyLoading] = useState(false);
   const [buyError, setBuyError] = useState(null);
-
+  const [sortOrder, setSortOrder] = useState('default');
   const [lastFetchTime, setLastFetchTime] = useState(Date.now());
-
 
   // Memoized filter function
   const filteredItems = useMemo(() => {
-    return allItems.filter(itemData =>
+    const filtered = allItems.filter(itemData =>
       itemData.type === 'UniqueAsset' &&
-      itemData.item.priceCents !== null &&
+      itemData.item.price && itemData.item.price.naturalAmount !== null &&
       itemData.item.owner.referenceId !== referenceId
     );
-  }, [allItems, referenceId]);
+    return sortItems(filtered, sortOrder);
+  }, [allItems, referenceId, sortOrder]);
 
   // Optimized fetch function with cancellation
   const fetchAllItems = useCallback(async (signal) => {
@@ -238,10 +254,9 @@ const MarketplaceHome = ({ referenceId }) => {
         fetchAllItems();
       }
     }, 30000);
-  
+
     return () => clearInterval(intervalId);
   }, [fetchAllItems]);
-  
 
   // Fetch data with cleanup
   useEffect(() => {
@@ -264,6 +279,7 @@ const MarketplaceHome = ({ referenceId }) => {
       controller.abort();
     };
   }, [fetchAllItems]);
+
   // Pagination hook
   const {
     currentItems,
@@ -370,6 +386,31 @@ const MarketplaceHome = ({ referenceId }) => {
       color: '#ffffff'
     }}>
       <div className="container py-5">
+        <div className="mb-5">
+          <div className="p-5 text-center bg-image rounded-3" style={{
+            backgroundImage: "url('https://example.com/marketplace-banner.jpg')",
+            height: '300px',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}>
+            <div className="mask" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
+              <div className="d-flex justify-content-center align-items-center h-100">
+                <div className="text-white">
+                  <h1 className="mb-3">Welcome to Our Marketplace</h1>
+                  <h4 className="mb-3">Discover Unique Digital Assets</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <Form.Control
+            placeholder="Search for items..."
+            aria-label="Search for items"
+          />
+        </div>
+
         <div className="text-center mb-5">
           <h1 className="display-4 fw-bold text-white mb-3" style={{
             background: 'linear-gradient(90deg, #00d2ff 0%, #7e51ff 100%)',
@@ -400,7 +441,7 @@ const MarketplaceHome = ({ referenceId }) => {
                 onChange={(e) => changePerPage(Number(e.target.value))}
               >
                 {[5, 10, 20, 50].map((num) => (
-                  <option key={num} value={num} className="text-dark"  >
+                  <option key={num} value={num} className="text-dark">
                     {num} sản phẩm/trang
                   </option>
                 ))}
@@ -415,6 +456,22 @@ const MarketplaceHome = ({ referenceId }) => {
               onPageChange={changePage}
             />
           </div>
+        </div>
+
+        {/* Sort Dropdown */}
+        <div className="d-flex justify-content-end mb-3">
+          <Dropdown>
+            <Dropdown.Toggle variant="outline-secondary" id="dropdown-sort">
+              Sort By
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => setSortOrder('default')}>Default</Dropdown.Item>
+              <Dropdown.Item onClick={() => setSortOrder('price-high-low')}>Price: High to Low</Dropdown.Item>
+              <Dropdown.Item onClick={() => setSortOrder('price-low-high')}>Price: Low to High</Dropdown.Item>
+              <Dropdown.Item onClick={() => setSortOrder('name-a-z')}>Name: A to Z</Dropdown.Item>
+              <Dropdown.Item onClick={() => setSortOrder('name-z-a')}>Name: Z to A</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
         </div>
 
         {/* Product Grid */}
@@ -446,7 +503,7 @@ const MarketplaceHome = ({ referenceId }) => {
                       className="position-absolute top-0 end-0 m-3 badge bg-dark bg-opacity-50"
                       style={{ backdropFilter: 'blur(5px)' }}
                     >
-                      {`$${(item.priceCents / 100).toFixed(2)} USDC`}
+                      {`$${parseFloat(item.price.naturalAmount).toFixed(2)} ${item.price.currencyId}`}
                     </div>
                   </div>
 
@@ -465,7 +522,7 @@ const MarketplaceHome = ({ referenceId }) => {
                         border: 'none'
                       }}
                     >
-                      Mua ngay
+                      Xem chi tiết
                     </Button>
                   </div>
                 </div>
@@ -545,7 +602,7 @@ const MarketplaceHome = ({ referenceId }) => {
                         <div>
                           <span className="fw-bold me-2">Giá:</span>
                           <span className="text-primary fw-bold">
-                            ${(selectedItem.priceCents / 100).toFixed(2)} USDC
+                            ${parseFloat(selectedItem.price.naturalAmount).toFixed(2)} ${selectedItem.price.currencyId}
                           </span>
                         </div>
                       </div>
@@ -621,3 +678,4 @@ const MarketplaceHome = ({ referenceId }) => {
 };
 
 export default MarketplaceHome;
+
